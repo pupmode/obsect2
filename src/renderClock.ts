@@ -314,15 +314,21 @@ function renderTimeframeRim(
         divLine.setAttribute('x2', String(p2.x));
         divLine.setAttribute('y2', String(p2.y));
         divLine.setAttribute('stroke', 'white');
-        divLine.setAttribute('stroke-width', '0.5');
-        divLine.setAttribute('opacity', '0.35');
+        divLine.setAttribute('stroke-width', '1');
+        divLine.setAttribute('opacity', '1.0');
         svg.appendChild(divLine);  
 
         // Curved text label  
         const labelRadius = (TIMEFRAME_RIM_OUTER + TIMEFRAME_RIM_INNER) / 2; // = 29  
         const midAngle = (startAngle + endAngle) / 2;
         const arcLength = ((endAngle - startAngle) / 360) * 2 * Math.PI * labelRadius;
-        const label = key.toUpperCase();
+        const TF_LABELS: Record<string, string> = {
+            morning: 'MORNING',
+            afternoon: 'AFTERNOON',
+            evening: 'EVENING',
+            night: '🌙',
+        };
+        const label = TF_LABELS[key] ?? key.toUpperCase();
         const fontSize = 3.2;
         const approxTextWidth = label.length * fontSize * 0.65;
 
@@ -436,8 +442,8 @@ export function renderClock(
         svg.appendChild(hourTick);
 
         // Inner hour tick  
-        const outerH2 = polarToCartesian(100, 100, 30, hourAngle);
-        const innerH2 = polarToCartesian(100, 100, 60, hourAngle);
+        const outerH2 = polarToCartesian(100, 100, 34, hourAngle);
+        const innerH2 = polarToCartesian(100, 100, 58, hourAngle);
         const hourTick2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         hourTick2.setAttribute('x1', String(outerH2.x)); hourTick2.setAttribute('y1', String(outerH2.y));
         hourTick2.setAttribute('x2', String(innerH2.x)); hourTick2.setAttribute('y2', String(innerH2.y));
