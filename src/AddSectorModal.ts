@@ -78,13 +78,13 @@ export class AddSectorModal extends Modal {
             this.duration = parseInt(customInput.value) || 60;
         });
 
+        durationSetting.settingEl.style.display = 'none';  
+
         // ── Auto-organize toggle (visible when timeframe is selected) ─────────  
         const autoOrgSetting = new Setting(contentEl)
             .setName('Auto-organize')
             .setDesc('Include in auto-organization. When unchecked, other sectors will organize around this one.')
             .addToggle(t => t.setValue(true).onChange(v => this.autoOrganize = v));
-
-        autoOrgSetting.settingEl.style.display = 'none';
 
         // ── Repeat days ───────────────────────────────────────────────────────  
         const daySetting = new Setting(contentEl)
