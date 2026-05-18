@@ -84,6 +84,20 @@ function makeGradient(
 
 export const COLORS = ['#e06c75', '#e5c07b', '#98c379', '#61afef', '#c678dd', '#56b6c2'];
 
+export function randomColor(): string {
+    const h = Math.floor(Math.random() * 360);
+    const s = 60 + Math.floor(Math.random() * 20); // 60–80% saturation  
+    const l = 55 + Math.floor(Math.random() * 15); // 55–70% lightness  
+    const sl = s / 100, ll = l / 100;
+    const a = sl * Math.min(ll, 1 - ll);
+    const f = (n: number) => {
+        const k = (n + h / 30) % 12;
+        const c = ll - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * c).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+}
+
 function expandSectors(sectors: Sector[]): Sector[] {
     const result: Sector[] = [];
     for (const sector of sectors) {

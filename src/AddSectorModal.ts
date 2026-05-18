@@ -1,7 +1,7 @@
 import { App, Modal, Notice, Setting } from 'obsidian';
 import SectographPlugin from './main';
 import { Sector } from './types';
-import { COLORS } from './renderClock';
+import { COLORS, randomColor } from './renderClock';
 import { organizeTimeframe } from './timeframeOrganizer';
 
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -71,11 +71,18 @@ export class AddSectorModal extends Modal {
                     }
                 }));
 
-        const customInput = durationSetting.controlEl.createEl('input', { type: 'number' }) as HTMLInputElement;
-        customInput.placeholder = 'minutes';
+        const customInput = durationSetting.controlEl.createEl('input', { type: 'text' }) as HTMLInputElement;
+        customInput.placeholder = 'HH:MM';
         customInput.style.cssText = 'display:none; width:70px; margin-left:8px;';
         customInput.addEventListener('change', () => {
-            this.duration = parseInt(customInput.value) || 60;
+            const val = customInput.value.trim();
+            if (val.includes(':')) {
+                const [h, m] = val.split(':').map(Number);
+                this.duration = (h || 0) * 60 + (m || 0);
+            } else {
+                // fallback: treat plain number as minutes  
+                this.duration = parseInt(val) || 60;
+            }
         });
 
         durationSetting.settingEl.style.display = 'none';  
@@ -116,7 +123,7 @@ export class AddSectorModal extends Modal {
                         end: this.timeframe ? undefined : (this.end || undefined),
                         date: today,
                         days: this.days,
-                        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                        color: randomColor(),
                         timeframe: this.timeframe || undefined,
                         duration: this.timeframe ? this.duration : undefined,
                         autoOrganize: this.autoOrganize,
