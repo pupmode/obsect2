@@ -18,6 +18,11 @@
     flex-shrink: 0;
 }
 
+.sectograph-time {
+    flex: 0 0 48px;
+    text-align: center;
+}
+
 .sectograph-input {
     background: transparent;
     border: none !important;
@@ -30,9 +35,72 @@
     min-width: 0;
 }
 
-.sectograph-time {
-    flex: 0 0 48px;
-    text-align: center;
+.sectograph-toggle {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.sectograph-toggle:hover {
+    color: var(--text-accent);
+}
+
+.sectograph-swatch {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 3px;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    background: none;
+}
+
+.sectograph-swatch::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.sectograph-swatch::-webkit-color-swatch {
+    border: none;
+}
+
+.sectograph-add-btn {
+    position: relative;
+    top: 8px;
+    right: 8px;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.sectograph-add-btn:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+}
+
+.sectograph-shuffle {
+    position: relative;
+    top: 8px;
+    right: 8px;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.sectograph-shuffle:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
 }
 
 .sectograph-delete {
@@ -93,19 +161,6 @@
     color: var(--text-muted);
 }
 
-.sectograph-toggle {
-    background: none !important;
-    border: none!important;
-    box-shadow: none !important;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 4px;
-}
-
-.sectograph-toggle:hover {
-    color: var(--text-accent);
-}
-
 .sectograph-hour-label {
     font-family: var(--font-interface);
     /* Obsidian's UI font */
@@ -126,39 +181,3 @@
     font-family: var(--font-monospace);
 }
 
-.sectograph-swatch {
-    width: 14px;
-    height: 14px;
-    border: none;
-    border-radius: 3px;
-    padding: 0;
-    cursor: pointer;
-    flex-shrink: 0;
-    background: none;
-}
-
-.sectograph-swatch::-webkit-color-swatch-wrapper {
-    padding: 0;
-}
-
-.sectograph-swatch::-webkit-color-swatch {
-    border: none;
-}
-
-.sectograph-add-btn {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        background: none!important;
-        border: none!important;
-        box-shadow: none !important;
-        cursor: pointer;
-        color: var(--text-muted);
-        padding: 4px;
-        border-radius: 4px;
-    }
-
-    .sectograph-add-btn:hover {
-        color: var(--text-normal);
-        background: var(--background-modifier-hover);
-    }
