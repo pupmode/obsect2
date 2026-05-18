@@ -35,19 +35,17 @@ export class ClockView extends ItemView {
         const container = this.containerEl.children[1];
         container.empty();
 
-        const btn = container.createEl('button', { cls: 'sectograph-toggle' });
+        const topBar = container.createEl('div', { cls: 'sectograph-top-bar' });
+
+        const btn = topBar.createEl('button', { cls: 'sectograph-toggle' });
         setIcon(btn, 'clock');
         btn.addEventListener('click', () => { this.use12h = !this.use12h; this.render(); });
 
-        const addBtn = container.createEl('button', { cls: 'sectograph-add-btn' });
-        setIcon(addBtn, 'plus');
-        addBtn.addEventListener('click', () => { new AddSectorModal(this.app, this.plugin).open(); });
-
         if (this.use12h) {
-            const ampmBtn = container.createEl('button', { cls: 'sectograph-toggle' });
+            const ampmBtn = topBar.createEl('button', { cls: 'sectograph-toggle' });
             setIcon(ampmBtn, this.showPM ? 'sun' : 'moon');
             ampmBtn.addEventListener('click', () => { this.showPM = !this.showPM; this.render(); });
-        }
+        }  
 
         const clockEl = container.createEl('div', { cls: 'sectograph-clock-wrap' });
         const timedSectors = sectors.filter(s => s.start && s.end);
@@ -180,6 +178,12 @@ export class ClockView extends ItemView {
     private renderList(container: Element, sectors: Sector[]) {
         const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
         const list = container.createEl('div', { cls: 'sectograph-list' });
+
+        // ── toolbar with add button ──────────────────────────────────────────  
+        const toolbar = list.createEl('div', { cls: 'sectograph-list-toolbar' });
+        const addBtn = toolbar.createEl('button', { cls: 'sectograph-add-btn' });
+        setIcon(addBtn, 'plus');
+        addBtn.addEventListener('click', () => { new AddSectorModal(this.app, this.plugin).open(); });  
 
         // ── group sectors by timeframe ──────────────────────────────────────  
         const TIMEFRAME_ORDER = ['morning', 'afternoon', 'evening', 'night', ''] as const;
