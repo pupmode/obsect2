@@ -68,6 +68,9 @@
 }
 
 .sectograph-add-btn {
+    position: relative;
+    top: 8px;
+    right: 8px;
     background: none !important;
     border: none !important;
     box-shadow: none !important;
@@ -83,6 +86,9 @@
 }
 
 .sectograph-shuffle {
+    position: relative;
+    top: 8px;
+    right: 8px;
     background: none !important;
     border: none !important;
     box-shadow: none !important;
@@ -175,28 +181,3 @@
     font-family: var(--font-monospace);
 }
 
-.sectograph-top-bar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-}
-
-.sectograph-list-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 0 4px 4px 4px;
-}
-
-.sectograph-timeframe-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 4px 2px 4px;
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}

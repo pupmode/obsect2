@@ -287,7 +287,7 @@ function renderTimeframeRim(
         const path = makePath(
             makeArcPath(TIMEFRAME_RIM_OUTER, TIMEFRAME_RIM_INNER, startAngle, endAngle),
             color,
-            '1.00'
+            '0.55'
         );
         svg.appendChild(path);
     }
