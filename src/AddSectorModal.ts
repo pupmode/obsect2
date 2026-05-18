@@ -57,7 +57,7 @@ export class AddSectorModal extends Modal {
                 .setButtonText('Add')
                 .setCta()
                 .onClick(async () => {
-                    if (!this.title || !this.start || !this.end) return;
+                    if (!this.title ) return;
                     const sector: Sector = {
                         title: this.title,
                         start: this.start,

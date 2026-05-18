@@ -45,16 +45,18 @@ export class ClockView extends ItemView {
 
         this.cachedSectors = sectors;
 
-        renderClock(container, sectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+        const timedSectors = sectors.filter(s => s.start && s.end);
+        renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
         this.svgEl = container.querySelector('svg') as SVGSVGElement;
-        this.renderList(container, sectors);
+        this.renderList(container, sectors); 
         this.setupDragEvents();
     }
 
     private async reloadSectors() {
         this.cachedSectors = await this.plugin.store.load(this.viewDate);
         const container = this.containerEl.children[1];
-        renderClock(container, this.cachedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+        const timedSectors = this.cachedSectors.filter(s => s.start && s.end);
+        renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
         this.svgEl = container.querySelector('svg') as SVGSVGElement;
         if (this.isDragging) this.setupDragEvents();
     }
@@ -87,7 +89,8 @@ export class ClockView extends ItemView {
             this.rafId = requestAnimationFrame(() => {
                 this.rafId = null;
                 const container = this.containerEl.children[1];
-                updateClockHand(container, this.cachedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+                const timedSectors = this.cachedSectors.filter(s => s.start && s.end);
+                updateClockHand(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
                 this.svgEl = container.querySelector('svg') as SVGSVGElement;
                 this.setupDragEvents();
             });
@@ -134,7 +137,8 @@ export class ClockView extends ItemView {
     redrawHand() {
         if (this.isDragging) return;
         const container = this.containerEl.children[1];
-        updateClockHand(container, this.cachedSectors, this.use12h, this.showPM);
+        const timedSectors = this.cachedSectors.filter(s => s.start && s.end);
+        updateClockHand(container, timedSectors, this.use12h, this.showPM);
         this.svgEl = container.querySelector('svg') as SVGSVGElement;
         this.setupDragEvents();
     }
@@ -180,7 +184,7 @@ export class ClockView extends ItemView {
             });
 
             const startInput = row.createEl('input', { cls: 'sectograph-input sectograph-time' }) as HTMLInputElement;
-            startInput.value = sector.start;
+            startInput.value = sector.start ?? '';  
             startInput.placeholder = 'HH:MM';
             startInput.addEventListener('change', async () => {
                 sector.start = startInput.value;
@@ -189,7 +193,7 @@ export class ClockView extends ItemView {
             });
 
             const endInput = row.createEl('input', { cls: 'sectograph-input sectograph-time' }) as HTMLInputElement;
-            endInput.value = sector.end;
+            endInput.value = sector.end ?? '';
             endInput.placeholder = 'HH:MM';
             endInput.addEventListener('change', async () => {
                 sector.end = endInput.value;

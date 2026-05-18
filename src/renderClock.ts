@@ -233,6 +233,7 @@ export function renderClock(
     overrideAngle?: number   // ← new optional param  
 ): void {
     // #region start renderclock
+    sectors = sectors.filter(s => s.start && s.end);
     const isPM = use12h ? showPM : new Date().getHours() >= 12;
     const windowStart = isPM ? 12 : 0;
 
@@ -576,6 +577,7 @@ export function updateClockHand(
 
     const isPM = use12h ? showPM : new Date().getHours() >= 12;
     const windowStart = isPM ? 12 : 0;
+    sectors = sectors.filter(s => s.start && s.end);
     const visibleSectors = (use12h
         ? expandSectors(sectors).filter(s => {
             const h = parseInt(s.start.split(':')[0]);
