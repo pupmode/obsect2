@@ -1,0 +1,242 @@
+import { ItemView, WorkspaceLeaf, setIcon } from 'obsidian';
+import SectographPlugin from './main';
+import { renderClock, updateClockHand, COLORS } from './renderClock';
+import { Sector } from './types';
+import { AddSectorModal } from './AddSectorModal';
+
+export const VIEW_TYPE_CLOCK = 'sectograph-clock';
+
+function offsetDate(isoDate: string, days: number): string {
+    const d = new Date(isoDate);
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+
+export class ClockView extends ItemView {
+    getViewType() { return VIEW_TYPE_CLOCK; }
+    getDisplayText() { return 'Sectograph'; }
+
+    private use12h: boolean;
+
+    constructor(leaf: WorkspaceLeaf, private plugin: SectographPlugin) {
+        super(leaf);
+        this.use12h = plugin.settings.defaultView === '12h';
+    }
+
+    async render() {
+        const container = this.containerEl.children[1];
+        container.empty();
+
+        const btn = container.createEl('button', { cls: 'sectograph-toggle' });
+        setIcon(btn, 'clock');
+        btn.addEventListener('click', () => { this.use12h = !this.use12h; this.render(); });
+
+        const addBtn = container.createEl('button', { cls: 'sectograph-add-btn' });
+        setIcon(addBtn, 'plus');
+        addBtn.addEventListener('click', () => { new AddSectorModal(this.app, this.plugin).open(); });
+
+        if (this.use12h) {
+            const ampmBtn = container.createEl('button', { cls: 'sectograph-toggle' });
+            setIcon(ampmBtn, this.showPM ? 'sun' : 'moon');
+            ampmBtn.addEventListener('click', () => { this.showPM = !this.showPM; this.render(); });
+        }
+
+        const [daySectors, repeatingSectors] = await Promise.all([
+            this.plugin.store.loadForDate(this.viewDate),
+            this.plugin.store.loadRepeating(),
+        ]);
+        const sectors = [...daySectors, ...repeatingSectors];
+
+        this.cachedSectors = sectors;
+
+        renderClock(container, sectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+        this.svgEl = container.querySelector('svg') as SVGSVGElement;
+        this.renderList(container, sectors);
+        this.setupDragEvents();
+    }
+
+    private async reloadSectors() {
+        const [daySectors, repeatingSectors] = await Promise.all([
+            this.plugin.store.loadForDate(this.viewDate),
+            this.plugin.store.loadRepeating(),
+        ]);
+        this.cachedSectors = [...daySectors, ...repeatingSectors];
+        const container = this.containerEl.children[1];
+        renderClock(container, this.cachedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+        this.svgEl = container.querySelector('svg') as SVGSVGElement;
+        if (this.isDragging) this.setupDragEvents();
+    }
+
+    private setupDragEvents() {
+        const svg = this.svgEl;
+        if (!svg) return;
+        const ball = svg.querySelector('#sectograph-ball') as SVGCircleElement | null;
+        if (!ball) return;
+
+        ball.style.cursor = 'grab';
+
+        const onMouseDown = (e: MouseEvent) => {
+            e.preventDefault();
+            this.isDragging = true;
+            this.prevDragAngle = this.angleFromPointer(e);
+            ball.style.cursor = 'grabbing';
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
+
+        const onMouseMove = (e: MouseEvent) => {
+            if (!this.isDragging) return;
+            const newAngle = this.angleFromPointer(e);
+            this.detectBoundaryCrossing(this.prevDragAngle!, newAngle);
+            this.prevDragAngle = newAngle;
+            this.dragAngle = newAngle;
+
+            if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+            this.rafId = requestAnimationFrame(() => {
+                this.rafId = null;
+                const container = this.containerEl.children[1];
+                updateClockHand(container, this.cachedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+                this.svgEl = container.querySelector('svg') as SVGSVGElement;
+                this.setupDragEvents();
+            });
+        };
+
+        const onMouseUp = () => {
+            this.isDragging = false;
+            if (this.rafId !== null) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+            ball.style.cursor = 'grab';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        ball.addEventListener('mousedown', onMouseDown);
+    }
+
+    private detectBoundaryCrossing(prevAngle: number, newAngle: number) {
+        const isWrap = Math.abs(newAngle - prevAngle) > 180;
+        const crossedForward = !isWrap && prevAngle < -90 && newAngle >= -90;
+        const crossedBackward = !isWrap && prevAngle >= -90 && newAngle < -90;
+
+        if (crossedForward) {
+            if (!this.showPM) { this.showPM = true; }
+            else { this.showPM = false; this.viewDate = offsetDate(this.viewDate, +1); }
+            this.reloadSectors();
+        } else if (crossedBackward) {
+            if (this.showPM) { this.showPM = false; }
+            else { this.showPM = true; this.viewDate = offsetDate(this.viewDate, -1); }
+            this.reloadSectors();
+        }
+    }
+
+    private angleFromPointer(e: MouseEvent): number {
+        const svg = this.svgEl!;
+        const rect = svg.getBoundingClientRect();
+        const svgX = (e.clientX - rect.left) / rect.width * 200;
+        const svgY = (e.clientY - rect.top) / rect.height * 200;
+        return Math.atan2(svgY - 100, svgX - 100) * 180 / Math.PI;
+    }
+
+    async onOpen() { await this.render(); }
+    async onClose() { }
+
+    redrawHand() {
+        if (this.isDragging) return;
+        const container = this.containerEl.children[1];
+        updateClockHand(container, this.cachedSectors, this.use12h, this.showPM);
+        this.svgEl = container.querySelector('svg') as SVGSVGElement;
+        this.setupDragEvents();
+    }
+
+    private viewDate: string = new Date().toISOString().slice(0, 10);
+    private showPM: boolean = new Date().getHours() >= 12;
+    private isDragging = false;
+    private dragAngle: number | null = null;
+    private svgEl: SVGSVGElement | null = null;
+    private prevDragAngle: number | null = null;
+    private cachedSectors: Sector[] = [];
+    private rafId: number | null = null;
+
+    private async saveSectors(sectors: Sector[]): Promise<void> {
+        await this.plugin.store.saveForDate(
+            this.viewDate,
+            sectors.filter(s => !s.days || s.days.length === 0)
+        );
+        await this.plugin.store.saveRepeating(
+            sectors.filter(s => s.days && s.days.length > 0)
+        );
+    }
+
+    private renderList(container: Element, sectors: Sector[]) {
+        const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+        const list = container.createEl('div', { cls: 'sectograph-list' });
+        sectors.forEach((sector, index) => {
+            const row = list.createEl('div', { cls: 'sectograph-list-row' });
+
+            const colorInput = row.createEl('input', { type: 'color', cls: 'sectograph-swatch' }) as HTMLInputElement;
+            colorInput.value = sector.color ?? COLORS[index % COLORS.length];
+            colorInput.addEventListener('change', async () => {
+                sector.color = colorInput.value;
+                await this.saveSectors(sectors);
+                this.render();
+            });
+
+            const titleInput = row.createEl('input', { cls: 'sectograph-input' }) as HTMLInputElement;
+            titleInput.value = sector.title;
+            titleInput.placeholder = 'Title';
+            titleInput.addEventListener('change', async () => {
+                sectors[index].title = titleInput.value;
+                await this.saveSectors(sectors);
+                this.render();
+            });
+
+            const startInput = row.createEl('input', { cls: 'sectograph-input sectograph-time' }) as HTMLInputElement;
+            startInput.value = sector.start;
+            startInput.placeholder = 'HH:MM';
+            startInput.addEventListener('change', async () => {
+                sectors[index].start = startInput.value;
+                await this.saveSectors(sectors);
+                this.render();
+            });
+
+            const endInput = row.createEl('input', { cls: 'sectograph-input sectograph-time' }) as HTMLInputElement;
+            endInput.value = sector.end;
+            endInput.placeholder = 'HH:MM';
+            endInput.addEventListener('change', async () => {
+                sectors[index].end = endInput.value;
+                await this.saveSectors(sectors);
+                this.render();
+            });
+
+            const deleteBtn = row.createEl('button', { text: '×', cls: 'sectograph-delete' });
+            deleteBtn.addEventListener('click', async () => {
+                sectors.splice(index, 1);
+                await this.saveSectors(sectors);
+                this.render();
+            });
+
+            const editBtn = row.createEl('button', { cls: 'sectograph-edit' });
+            setIcon(editBtn, 'pencil');
+
+            const details = list.createEl('div', { cls: 'sectograph-details' });
+            details.style.display = 'none';
+            editBtn.addEventListener('click', () => {
+                details.style.display = details.style.display === 'none' ? 'flex' : 'none';
+            });
+
+            const dayRow = details.createEl('div', { cls: 'sectograph-day-row' });
+            DAY_LABELS.forEach((label, i) => {
+                const wrapper = dayRow.createEl('label', { cls: 'sectograph-day-label' });
+                const cb = wrapper.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
+                cb.checked = (sector.days ?? []).includes(i);
+                cb.addEventListener('change', async () => {
+                    let days = sectors[index].days ?? [];
+                    days = cb.checked ? [...days, i] : days.filter(d => d !== i);
+                    sectors[index].days = days;
+                    await this.saveSectors(sectors);
+                    // No re-render — keeps the panel open  
+                });
+                wrapper.appendText(label);
+            });
+        });
+    }
+}

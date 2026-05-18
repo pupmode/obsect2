@@ -1,0 +1,9 @@
+{
+	"id": "sectograph",
+	"name": "Sectograph",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Sectograph",
+	"author": "Nick",
+	"isDesktopOnly": false
+}

@@ -1,0 +1,164 @@
+.sectograph-list {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sectograph-list-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sectograph-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.sectograph-input {
+    background: transparent;
+    border: none !important;
+    box-shadow: none !important;
+    border-bottom: 1px solid var(--background-modifier-border);
+    color: var(--text-normal);
+    font-size: 12px;
+    padding: 2px 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sectograph-time {
+    flex: 0 0 48px;
+    text-align: center;
+}
+
+.sectograph-delete {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.sectograph-delete:hover {
+    color: var(--text-error);
+}
+
+.sectograph-edit {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.sectograph-edit:hover {
+    color: var(--text-accent);
+}
+
+.sectograph-details {
+    padding: 4px 8px 8px 20px;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sectograph-day-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.sectograph-day-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 10px;
+    gap: 2px;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.sectograph-day-heading {
+    margin: 4px 0 2px 0;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.sectograph-toggle {
+    background: none !important;
+    border: none!important;
+    box-shadow: none !important;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.sectograph-toggle:hover {
+    color: var(--text-accent);
+}
+
+.sectograph-hour-label {
+    font-family: var(--font-interface);
+    /* Obsidian's UI font */
+    font-size: 12px;
+    fill: #cccccc;
+    /* SVG uses "fill" not "color" */
+    font-weight: bold;
+}
+
+.sectograph-digital-time {
+    fill: var(--text-normal);
+    font-weight: bold;
+    font-family: var(--font-interface);
+}
+
+.sectograph-digital-date {
+    fill: var(--text-muted);
+    font-family: var(--font-monospace);
+}
+
+.sectograph-swatch {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 3px;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    background: none;
+}
+
+.sectograph-swatch::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.sectograph-swatch::-webkit-color-swatch {
+    border: none;
+}
+
+.sectograph-add-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: none!important;
+        border: none!important;
+        box-shadow: none !important;
+        cursor: pointer;
+        color: var(--text-muted);
+        padding: 4px;
+        border-radius: 4px;
+    }
+
+    .sectograph-add-btn:hover {
+        color: var(--text-normal);
+        background: var(--background-modifier-hover);
+    }
