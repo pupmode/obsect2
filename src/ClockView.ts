@@ -95,20 +95,19 @@ export class ClockView extends ItemView {
                 const container = this.containerEl.children[1];
                 const timedSectors = this.cachedSectors.filter(s => s.start && s.end);
                 updateClockHand(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
-                this.svgEl = container.querySelector('svg') as SVGSVGElement;
-                this.setupDragEvents();
             });
         };
 
         const onMouseUp = () => {
             this.isDragging = false;
+            this.dragAngle = null;
             if (this.rafId !== null) { cancelAnimationFrame(this.rafId); this.rafId = null; }
-            ball.style.cursor = 'grab';
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+            this.setupDragEvents();  
         };
 
-        ball.addEventListener('mousedown', onMouseDown);
+        ball.addEventListener('mousedown', onMouseDown, { once: true });
     }
 
     private detectBoundaryCrossing(prevAngle: number, newAngle: number) {
@@ -306,7 +305,7 @@ export class ClockView extends ItemView {
                 autoOrgLabel.appendText(
                     sector.timeframe
                         ? ' Auto-organize'
-                        : ' Fixed (organize around this sector)'
+                        : ' Auto-organize'
                 );
             });
         }
