@@ -282,20 +282,22 @@ export class ClockView extends ItemView {
                     wrapper.appendText(label);
                 });
 
-                // ── autoOrganize checkbox (only for sectors with a timeframe) ─  
-                if (sector.timeframe) {
-                    const autoOrgRow = details.createEl('div', { cls: 'sectograph-auto-org-row' });
-                    const autoOrgLabel = autoOrgRow.createEl('label');
-                    const autoOrgCb = autoOrgLabel.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
-                    autoOrgCb.checked = sector.autoOrganize !== false;
-                    autoOrgCb.addEventListener('change', async () => {
-                        sector.autoOrganize = autoOrgCb.checked;
-                        await this.updateSector(sector);
-                        if (sector.timeframe) await this.reOrganizeTimeframe(sector.timeframe);
-                        this.render();
-                    });
-                    autoOrgLabel.appendText(' Auto-organize');
-                }
+                // ── autoOrganize checkbox (all sectors) ──────────────────────────────  
+                const autoOrgRow = details.createEl('div', { cls: 'sectograph-auto-org-row' });
+                const autoOrgLabel = autoOrgRow.createEl('label');
+                const autoOrgCb = autoOrgLabel.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
+                autoOrgCb.checked = sector.autoOrganize !== false;
+                autoOrgCb.addEventListener('change', async () => {
+                    sector.autoOrganize = autoOrgCb.checked;
+                    await this.updateSector(sector);
+                    if (sector.timeframe) await this.reOrganizeTimeframe(sector.timeframe);
+                    this.render();
+                });
+                autoOrgLabel.appendText(
+                    sector.timeframe
+                        ? ' Auto-organize'
+                        : ' Fixed (organize around this sector)'
+                );
             });
         }
     }

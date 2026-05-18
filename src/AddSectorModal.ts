@@ -43,7 +43,6 @@ export class AddSectorModal extends Modal {
                     startSetting.settingEl.style.display = v ? 'none' : '';
                     endSetting.settingEl.style.display = v ? 'none' : '';
                     durationSetting.settingEl.style.display = v ? '' : 'none';
-                    autoOrgSetting.settingEl.style.display = v ? '' : 'none';
                 }));
 
         // ── Manual time fields (visible when no timeframe) ────────────────────  
@@ -79,12 +78,10 @@ export class AddSectorModal extends Modal {
             this.duration = parseInt(customInput.value) || 60;
         });
 
-        durationSetting.settingEl.style.display = 'none';
-
         // ── Auto-organize toggle (visible when timeframe is selected) ─────────  
         const autoOrgSetting = new Setting(contentEl)
             .setName('Auto-organize')
-            .setDesc('Let the plugin assign the time within the chosen timeframe.')
+            .setDesc('Include in auto-organization. When unchecked, other sectors will organize around this one.')
             .addToggle(t => t.setValue(true).onChange(v => this.autoOrganize = v));
 
         autoOrgSetting.settingEl.style.display = 'none';
@@ -122,7 +119,7 @@ export class AddSectorModal extends Modal {
                         color: COLORS[Math.floor(Math.random() * COLORS.length)],
                         timeframe: this.timeframe || undefined,
                         duration: this.timeframe ? this.duration : undefined,
-                        autoOrganize: this.timeframe ? this.autoOrganize : undefined,
+                        autoOrganize: this.autoOrganize,
                     };
 
                     await this.plugin.store.addSector(sector);
