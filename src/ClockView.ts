@@ -25,6 +25,13 @@ export class ClockView extends ItemView {
     }
 
     async render() {
+        const version = ++this.renderVersion;
+
+        const sectors = await this.plugin.store.load(this.viewDate);
+        if (version !== this.renderVersion) return; // a newer render started, abort  
+
+        this.cachedSectors = sectors;
+
         const container = this.containerEl.children[1];
         container.empty();
 
@@ -42,14 +49,10 @@ export class ClockView extends ItemView {
             ampmBtn.addEventListener('click', () => { this.showPM = !this.showPM; this.render(); });
         }
 
-        const sectors = await this.plugin.store.load(this.viewDate);
-
-        this.cachedSectors = sectors;
-
         const timedSectors = sectors.filter(s => s.start && s.end);
         renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined, this.plugin.settings.timeframes);
         this.svgEl = container.querySelector('svg') as SVGSVGElement;
-        this.renderList(container, sectors); 
+        this.renderList(container, sectors);
         this.setupDragEvents();
     }
 
@@ -150,6 +153,7 @@ export class ClockView extends ItemView {
     private dragAngle: number | null = null;
     private svgEl: SVGSVGElement | null = null;
     private prevDragAngle: number | null = null;
+    private renderVersion = 0;
     private cachedSectors: Sector[] = [];
     private rafId: number | null = null;
 
