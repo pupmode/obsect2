@@ -96,6 +96,22 @@ export class SectorStore {
         await this.writeSector(id, sector);
     }
 
+    async renameSector(oldId: string, sector: Sector): Promise<string> {
+        const date = sector.date ?? new Date().toISOString().slice(0, 10);
+        const [yyyy, mm, dd] = date.split('-');
+        const startSlug = (sector.start ?? '').replace(':', '-');
+        const titleSlug = sector.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+        const newId = `${dd}-${mm}-${yyyy.slice(-2)}-${startSlug}-${titleSlug}`;
+
+        if (newId === oldId) {
+            await this.writeSector(oldId, sector);
+            return oldId;
+        }
+        await this.writeSector(newId, { ...sector, id: newId });
+        await this.deleteSector(oldId);
+        return newId;
+    }
+
     async deleteSector(id: string): Promise<void> {
         const file = this.app.vault.getAbstractFileByPath(this.sectorPath(id));
         if (file instanceof TFile) await this.app.vault.delete(file);

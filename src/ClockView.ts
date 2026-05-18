@@ -3,6 +3,7 @@ import SectographPlugin from './main';
 import { renderClock, updateClockHand, COLORS } from './renderClock';
 import { Sector } from './types';
 import { AddSectorModal } from './AddSectorModal';
+import { organizeTimeframe } from './timeframeOrganizer';
 
 export const VIEW_TYPE_CLOCK = 'sectograph-clock';
 
@@ -160,75 +161,142 @@ export class ClockView extends ItemView {
         if (sector.id) await this.plugin.store.deleteSector(sector.id);
     }
 
+    private async reOrganizeTimeframe(
+        timeframe: 'morning' | 'afternoon' | 'evening' | 'night'
+    ): Promise<void> {
+        const allSectors = await this.plugin.store.load(this.viewDate);
+        const result = organizeTimeframe(allSectors, timeframe, this.plugin.settings);
+        for (const s of result.updated) {
+            if (s.id) await this.plugin.store.updateSector(s.id, s);
+        }
+    }
+
     private renderList(container: Element, sectors: Sector[]) {
         const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
         const list = container.createEl('div', { cls: 'sectograph-list' });
-        sectors.forEach((sector, index) => {
-            const row = list.createEl('div', { cls: 'sectograph-list-row' });
 
-            const colorInput = row.createEl('input', { type: 'color', cls: 'sectograph-swatch' }) as HTMLInputElement;
-            colorInput.value = sector.color ?? COLORS[index % COLORS.length];
-            colorInput.addEventListener('change', async () => {
-                sector.color = colorInput.value;
-                await this.updateSector(sector);
-                this.render();
-            });
-
-            const titleInput = row.createEl('input', { cls: 'sectograph-input' }) as HTMLInputElement;
-            titleInput.value = sector.title;
-            titleInput.placeholder = 'Title';
-            titleInput.addEventListener('change', async () => {
-                sector.title = titleInput.value;
-                await this.updateSector(sector);
-                this.render();
-            });
-
-            const startInput = row.createEl('input', { cls: 'sectograph-input sectograph-time' }) as HTMLInputElement;
-            startInput.value = sector.start ?? '';  
-            startInput.placeholder = 'HH:MM';
-            startInput.addEventListener('change', async () => {
-                sector.start = startInput.value;
-                await this.updateSector(sector);
-                this.render();
-            });
-
-            const endInput = row.createEl('input', { cls: 'sectograph-input sectograph-time' }) as HTMLInputElement;
-            endInput.value = sector.end ?? '';
-            endInput.placeholder = 'HH:MM';
-            endInput.addEventListener('change', async () => {
-                sector.end = endInput.value;
-                await this.updateSector(sector);
-                this.render();
-            });
-
-            const deleteBtn = row.createEl('button', { text: '×', cls: 'sectograph-delete' });
-            deleteBtn.addEventListener('click', async () => {
-                await this.deleteSector(sector);
-                this.render();
-            });
-
-            const editBtn = row.createEl('button', { cls: 'sectograph-edit' });
-            setIcon(editBtn, 'pencil');
-
-            const details = list.createEl('div', { cls: 'sectograph-details' });
-            details.style.display = 'none';
-            editBtn.addEventListener('click', () => {
-                details.style.display = details.style.display === 'none' ? 'flex' : 'none';
-            });
-
-            const dayRow = details.createEl('div', { cls: 'sectograph-day-row' });
-            DAY_LABELS.forEach((label, i) => {
-                const wrapper = dayRow.createEl('label', { cls: 'sectograph-day-label' });
-                const cb = wrapper.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
-                cb.checked = (sector.days ?? []).includes(i);
-                cb.addEventListener('change', async () => {
-                    let days = sector.days ?? [];
-                    days = cb.checked ? [...days, i] : days.filter(d => d !== i);
-                    sector.days = days;
-                    await this.updateSector(sector);
-                });
-                wrapper.appendText(label);
-            });
+        // ── group sectors by timeframe ──────────────────────────────────────  
+        const TIMEFRAME_ORDER = ['morning', 'afternoon', 'evening', 'night', ''] as const;
+        const groups = new Map<string, Sector[]>();
+        TIMEFRAME_ORDER.forEach(tf => groups.set(tf, []));
+        sectors.forEach(s => {
+            const key = s.timeframe ?? '';
+            groups.get(key)?.push(s);
         });
+
+        let sectorIndex = 0; // used for COLORS fallback  
+
+        for (const tf of TIMEFRAME_ORDER) {
+            const group = groups.get(tf)!;
+            if (group.length === 0) continue;
+
+            // ── timeframe header + shuffle button ────────────────────────────  
+            if (tf) {
+                const header = list.createEl('div', { cls: 'sectograph-timeframe-header' });
+                header.createEl('span', { text: tf.charAt(0).toUpperCase() + tf.slice(1) });
+                const shuffleBtn = header.createEl('button', { cls: 'sectograph-shuffle' });
+                setIcon(shuffleBtn, 'shuffle');
+                shuffleBtn.addEventListener('click', async () => {
+                    const shuffled = [...group].sort(() => Math.random() - 0.5);
+                    const others = this.cachedSectors.filter(s => s.timeframe !== tf);
+                    const reordered = [...others, ...shuffled];
+                    const result = organizeTimeframe(reordered, tf, this.plugin.settings);
+                    for (const s of result.updated) {
+                        if (s.id) await this.plugin.store.updateSector(s.id, s);
+                    }
+                    this.render();
+                });
+            }
+
+            // ── UNCHANGED per-sector row code, now inside group.forEach ──────────  
+            group.forEach((sector) => {
+                const index = sectorIndex++;
+
+                const row = list.createEl('div', { cls: 'sectograph-list-row' });
+
+                const colorInput = row.createEl('input', { type: 'color', cls: 'sectograph-swatch' }) as HTMLInputElement;
+                colorInput.value = sector.color ?? COLORS[index % COLORS.length];
+                colorInput.addEventListener('change', async () => {
+                    sector.color = colorInput.value;
+                    await this.updateSector(sector);
+                    this.render();
+                });
+
+                const titleInput = row.createEl('input', { cls: 'sectograph-input' }) as HTMLInputElement;
+                titleInput.value = sector.title;
+                titleInput.placeholder = 'Title';
+                titleInput.addEventListener('change', async () => {
+                    sector.title = titleInput.value;
+                    await this.updateSector(sector);
+                    this.render();
+                });
+
+                const startInput = row.createEl('input', { cls: 'sectograph-input sectograph-time' }) as HTMLInputElement;
+                startInput.value = sector.start ?? '';
+                startInput.placeholder = 'HH:MM';
+                startInput.addEventListener('change', async () => {
+                    sector.start = startInput.value;
+                    await this.updateSector(sector);
+                    this.render();
+                });
+
+                const endInput = row.createEl('input', { cls: 'sectograph-input sectograph-time' }) as HTMLInputElement;
+                endInput.value = sector.end ?? '';
+                endInput.placeholder = 'HH:MM';
+                endInput.addEventListener('change', async () => {
+                    sector.end = endInput.value;
+                    await this.updateSector(sector);
+                    this.render();
+                });
+
+                // ── CHANGED: deleteBtn now calls reOrganizeTimeframe ──────────────  
+                const deleteBtn = row.createEl('button', { text: '×', cls: 'sectograph-delete' });
+                deleteBtn.addEventListener('click', async () => {
+                    const sectorTf = sector.timeframe;
+                    await this.deleteSector(sector);
+                    if (sectorTf) await this.reOrganizeTimeframe(sectorTf);
+                    this.render();
+                });
+
+                const editBtn = row.createEl('button', { cls: 'sectograph-edit' });
+                setIcon(editBtn, 'pencil');
+
+                const details = list.createEl('div', { cls: 'sectograph-details' });
+                details.style.display = 'none';
+                editBtn.addEventListener('click', () => {
+                    details.style.display = details.style.display === 'none' ? 'flex' : 'none';
+                });
+
+                // ── day-repeat checkboxes ─────────────────────────────  
+                const dayRow = details.createEl('div', { cls: 'sectograph-day-row' });
+                DAY_LABELS.forEach((label, i) => {
+                    const wrapper = dayRow.createEl('label', { cls: 'sectograph-day-label' });
+                    const cb = wrapper.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
+                    cb.checked = (sector.days ?? []).includes(i);
+                    cb.addEventListener('change', async () => {
+                        let days = sector.days ?? [];
+                        days = cb.checked ? [...days, i] : days.filter(d => d !== i);
+                        sector.days = days;
+                        await this.updateSector(sector);
+                    });
+                    wrapper.appendText(label);
+                });
+
+                // ── autoOrganize checkbox (only for sectors with a timeframe) ─  
+                if (sector.timeframe) {
+                    const autoOrgRow = details.createEl('div', { cls: 'sectograph-auto-org-row' });
+                    const autoOrgLabel = autoOrgRow.createEl('label');
+                    const autoOrgCb = autoOrgLabel.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
+                    autoOrgCb.checked = sector.autoOrganize !== false;
+                    autoOrgCb.addEventListener('change', async () => {
+                        sector.autoOrganize = autoOrgCb.checked;
+                        await this.updateSector(sector);
+                        if (sector.timeframe) await this.reOrganizeTimeframe(sector.timeframe);
+                        this.render();
+                    });
+                    autoOrgLabel.appendText(' Auto-organize');
+                }
+            });
+        }
     }
 }

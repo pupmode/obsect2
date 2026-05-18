@@ -5,5 +5,8 @@ export interface Sector {
     end?: string;
     date?: string;       // "YYYY-MM-DD"  
     days?: number[];     // 0=Sun … 6=Sat; empty = one-time  
-    color?: string;      // hex color  
+    color?: string;      // hex color 
+    timeframe?: 'morning' | 'afternoon' | 'evening' | 'night';
+    duration?: number;
+    autoOrganize?: boolean;  
 }
