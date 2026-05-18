@@ -2,15 +2,11 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import SectographPlugin from './main';
 
 export interface SectographSettings {
-	sourceNotePath: string;       // legacy — used only for migration  
 	defaultView: '12h' | '24h';
-	migrated: boolean;            // internal — true once single-file migration has run  
 }
 
 export const DEFAULT_SETTINGS: SectographSettings = {
-	sourceNotePath: 'Sectograph.md',
 	defaultView: '12h',
-	migrated: false,
 };
 
 export class SectographSettingTab extends PluginSettingTab {
@@ -34,17 +30,6 @@ export class SectographSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.defaultView)
 				.onChange(async (value) => {
 					this.plugin.settings.defaultView = value as '12h' | '24h';
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('Legacy source note path')
-			.setDesc('Path to the old single-file note (used for one-time migration only).')
-			.addText(text => text
-				.setPlaceholder('Sectograph.md')
-				.setValue(this.plugin.settings.sourceNotePath)
-				.onChange(async (value) => {
-					this.plugin.settings.sourceNotePath = value;
 					await this.plugin.saveSettings();
 				}));
 	}

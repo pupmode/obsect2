@@ -41,11 +41,7 @@ export class ClockView extends ItemView {
             ampmBtn.addEventListener('click', () => { this.showPM = !this.showPM; this.render(); });
         }
 
-        const [daySectors, repeatingSectors] = await Promise.all([
-            this.plugin.store.loadForDate(this.viewDate),
-            this.plugin.store.loadRepeating(),
-        ]);
-        const sectors = [...daySectors, ...repeatingSectors];
+        const sectors = await this.plugin.store.load(this.viewDate);
 
         this.cachedSectors = sectors;
 
@@ -56,11 +52,7 @@ export class ClockView extends ItemView {
     }
 
     private async reloadSectors() {
-        const [daySectors, repeatingSectors] = await Promise.all([
-            this.plugin.store.loadForDate(this.viewDate),
-            this.plugin.store.loadRepeating(),
-        ]);
-        this.cachedSectors = [...daySectors, ...repeatingSectors];
+        this.cachedSectors = await this.plugin.store.load(this.viewDate);
         const container = this.containerEl.children[1];
         renderClock(container, this.cachedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
         this.svgEl = container.querySelector('svg') as SVGSVGElement;
@@ -156,14 +148,12 @@ export class ClockView extends ItemView {
     private cachedSectors: Sector[] = [];
     private rafId: number | null = null;
 
-    private async saveSectors(sectors: Sector[]): Promise<void> {
-        await this.plugin.store.saveForDate(
-            this.viewDate,
-            sectors.filter(s => !s.days || s.days.length === 0)
-        );
-        await this.plugin.store.saveRepeating(
-            sectors.filter(s => s.days && s.days.length > 0)
-        );
+    private async updateSector(sector: Sector): Promise<void> {
+        if (sector.id) await this.plugin.store.updateSector(sector.id, sector);
+    }
+
+    private async deleteSector(sector: Sector): Promise<void> {
+        if (sector.id) await this.plugin.store.deleteSector(sector.id);
     }
 
     private renderList(container: Element, sectors: Sector[]) {
@@ -176,7 +166,7 @@ export class ClockView extends ItemView {
             colorInput.value = sector.color ?? COLORS[index % COLORS.length];
             colorInput.addEventListener('change', async () => {
                 sector.color = colorInput.value;
-                await this.saveSectors(sectors);
+                await this.updateSector(sector);
                 this.render();
             });
 
@@ -184,8 +174,8 @@ export class ClockView extends ItemView {
             titleInput.value = sector.title;
             titleInput.placeholder = 'Title';
             titleInput.addEventListener('change', async () => {
-                sectors[index].title = titleInput.value;
-                await this.saveSectors(sectors);
+                sector.title = titleInput.value;
+                await this.updateSector(sector);
                 this.render();
             });
 
@@ -193,8 +183,8 @@ export class ClockView extends ItemView {
             startInput.value = sector.start;
             startInput.placeholder = 'HH:MM';
             startInput.addEventListener('change', async () => {
-                sectors[index].start = startInput.value;
-                await this.saveSectors(sectors);
+                sector.start = startInput.value;
+                await this.updateSector(sector);
                 this.render();
             });
 
@@ -202,15 +192,14 @@ export class ClockView extends ItemView {
             endInput.value = sector.end;
             endInput.placeholder = 'HH:MM';
             endInput.addEventListener('change', async () => {
-                sectors[index].end = endInput.value;
-                await this.saveSectors(sectors);
+                sector.end = endInput.value;
+                await this.updateSector(sector);
                 this.render();
             });
 
             const deleteBtn = row.createEl('button', { text: '×', cls: 'sectograph-delete' });
             deleteBtn.addEventListener('click', async () => {
-                sectors.splice(index, 1);
-                await this.saveSectors(sectors);
+                await this.deleteSector(sector);
                 this.render();
             });
 
@@ -229,11 +218,10 @@ export class ClockView extends ItemView {
                 const cb = wrapper.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
                 cb.checked = (sector.days ?? []).includes(i);
                 cb.addEventListener('change', async () => {
-                    let days = sectors[index].days ?? [];
+                    let days = sector.days ?? [];
                     days = cb.checked ? [...days, i] : days.filter(d => d !== i);
-                    sectors[index].days = days;
-                    await this.saveSectors(sectors);
-                    // No re-render — keeps the panel open  
+                    sector.days = days;
+                    await this.updateSector(sector);
                 });
                 wrapper.appendText(label);
             });

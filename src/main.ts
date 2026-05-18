@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, parseYaml } from 'obsidian';
+import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { DEFAULT_SETTINGS, SectographSettings, SectographSettingTab } from './settings';
 import { ClockView, VIEW_TYPE_CLOCK } from './ClockView';
 import { AddSectorModal } from './AddSectorModal';
@@ -14,13 +14,6 @@ export default class Sectograph extends Plugin {
 		this.store = new SectorStore(
 			this.app
 		);
-
-		// Migrate from old single-file format on first load  
-		if (!this.settings.migrated) {
-			await this.store.migrateFromSingleFile(this.settings.sourceNotePath);
-			this.settings.migrated = true;
-			await this.saveSettings();
-		}
 
 		// 1. Register the clock view type  
 		this.registerView(VIEW_TYPE_CLOCK, (leaf: WorkspaceLeaf) => new ClockView(leaf, this));
@@ -46,12 +39,6 @@ export default class Sectograph extends Plugin {
 			callback: () => {
 				new AddSectorModal(this.app, this).open();
 			}
-		});
-
-		// 5. Render sectograph code blocks inside notes  
-		this.registerMarkdownCodeBlockProcessor('sectograph', (source, el, _ctx) => {
-			const sectors = parseYaml(source) ?? [];
-			el.createEl('pre', { text: JSON.stringify(sectors, null, 2) });
 		});
 
 		// 6. Redraw the clock hand every minute  
