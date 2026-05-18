@@ -59,6 +59,19 @@ function makeArcPath(outerR: number, innerR: number, startAngle: number, endAngl
     ].join(' ');
 }
 
+/** Single open arc path (for textPath use). Reversed = counter-clockwise, for bottom-half text. */
+function makeSimpleArcPath(r: number, startAngle: number, endAngle: number, reversed = false): string {
+    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+    if (reversed) {
+        const s = polarToCartesian(100, 100, r, endAngle);
+        const e = polarToCartesian(100, 100, r, startAngle);
+        return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 0 ${e.x} ${e.y}`;
+    }
+    const s = polarToCartesian(100, 100, r, startAngle);
+    const e = polarToCartesian(100, 100, r, endAngle);
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 1 ${e.x} ${e.y}`;
+}
+
 /** Appends a two-stop linearGradient to defs. */
 function makeGradient(
     defs: SVGDefsElement,
@@ -86,10 +99,10 @@ export const COLORS = ['#e06c75', '#e5c07b', '#98c379', '#61afef', '#c678dd', '#
 
 // Timeframe rim colors  
 const TIMEFRAME_COLORS: Record<string, string> = {
-    morning: '#f5c842',   // warm yellow  
-    afternoon: '#f5a623',   // amber  
-    evening: '#c0392b',   // deep red  
-    night: '#2c3e7a',   // dark blue  
+    morning: '#000000',   // warm yellow  
+    afternoon: '#000000',   // amber  
+    evening: '#000000',   // deep red  
+    night: '#000000',   // dark blue  
 };
 const TIMEFRAME_RIM_INNER = 27;
 const TIMEFRAME_RIM_OUTER = 31;
@@ -144,6 +157,8 @@ function buildDynamicGroup(
     const timerTexts: Element[] = [];
 
     // --- Countdown arc ---  
+    const normHand = handAngle < -90 ? handAngle + 360 : handAngle;
+
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const nextSector = visibleSectors.find(s => {
         const [sh, sm] = s.start.split(':').map(Number);
@@ -153,9 +168,9 @@ function buildDynamicGroup(
         const [bH, bM] = nextSector.start.split(':').map(Number);
         const bMinutes = bH * 60 + bM;
         const gapEnd = timeToAngle(nextSector.start, use12h);
-        if (gapEnd > handAngle) {
+        if (gapEnd > normHand) {                                    
             const r = 53, hw = 4;
-            const startAngle = handAngle, endAngle = gapEnd;
+            const startAngle = normHand, endAngle = gapEnd;   
             const arcSpan = endAngle - startAngle;
             const arcLength = (arcSpan / 360) * 2 * Math.PI * r;
             const fullFontSize = 6;
@@ -290,6 +305,64 @@ function renderTimeframeRim(
             '1.00'
         );
         svg.appendChild(path);
+
+        const p1 = polarToCartesian(100, 100, TIMEFRAME_RIM_INNER, startAngle);
+        const p2 = polarToCartesian(100, 100, TIMEFRAME_RIM_OUTER, startAngle);
+        const divLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        divLine.setAttribute('x1', String(p1.x));
+        divLine.setAttribute('y1', String(p1.y));
+        divLine.setAttribute('x2', String(p2.x));
+        divLine.setAttribute('y2', String(p2.y));
+        divLine.setAttribute('stroke', 'white');
+        divLine.setAttribute('stroke-width', '0.5');
+        divLine.setAttribute('opacity', '0.35');
+        svg.appendChild(divLine);  
+
+        // Curved text label  
+        const labelRadius = (TIMEFRAME_RIM_OUTER + TIMEFRAME_RIM_INNER) / 2; // = 29  
+        const midAngle = (startAngle + endAngle) / 2;
+        const arcLength = ((endAngle - startAngle) / 360) * 2 * Math.PI * labelRadius;
+        const label = key.toUpperCase();
+        const fontSize = 3.2;
+        const approxTextWidth = label.length * fontSize * 0.65;
+
+        if (arcLength > approxTextWidth * 1.5) {
+            const isBottomHalf = midAngle > 90 && midAngle < 270;
+            const arcData = makeSimpleArcPath(labelRadius, startAngle, endAngle, isBottomHalf);
+
+            let defs = svg.querySelector('defs') as SVGDefsElement | null;
+            if (!defs) {
+                defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs') as SVGDefsElement;
+                svg.insertBefore(defs, svg.firstChild);
+            }
+
+            const pathId = `tf-label-path-${key}`;
+            const old = defs.querySelector(`#${pathId}`);
+            if (old) defs.removeChild(old);
+
+            const arcEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            arcEl.setAttribute('id', pathId);
+            arcEl.setAttribute('d', arcData);
+            arcEl.setAttribute('fill', 'none');
+            defs.appendChild(arcEl);
+
+            const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            textEl.setAttribute('font-size', String(fontSize));
+            textEl.setAttribute('fill', '#ffffff');
+            textEl.setAttribute('opacity', '1.0');
+            textEl.setAttribute('font-weight', '600');
+            textEl.setAttribute('letter-spacing', '0.4');
+
+            const textPath = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
+            textPath.setAttribute('href', `#${pathId}`);
+            textPath.setAttribute('startOffset', '50%');
+            textPath.setAttribute('text-anchor', 'middle');
+            textPath.setAttribute('dominant-baseline', 'central');
+            textPath.textContent = label;
+
+            textEl.appendChild(textPath);
+            svg.appendChild(textEl);
+        }
     }
 }
 
