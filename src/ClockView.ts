@@ -47,7 +47,7 @@ export class ClockView extends ItemView {
         this.cachedSectors = sectors;
 
         const timedSectors = sectors.filter(s => s.start && s.end);
-        renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+        renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined, this.plugin.settings.timeframes);
         this.svgEl = container.querySelector('svg') as SVGSVGElement;
         this.renderList(container, sectors); 
         this.setupDragEvents();
@@ -57,7 +57,7 @@ export class ClockView extends ItemView {
         this.cachedSectors = await this.plugin.store.load(this.viewDate);
         const container = this.containerEl.children[1];
         const timedSectors = this.cachedSectors.filter(s => s.start && s.end);
-        renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+        renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined, this.plugin.settings.timeframes);
         this.svgEl = container.querySelector('svg') as SVGSVGElement;
         if (this.isDragging) this.setupDragEvents();
     }

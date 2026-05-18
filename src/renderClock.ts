@@ -1,7 +1,7 @@
 import { Sector } from './types';
 
 // Layout constants — all values are in SVG units (total clock radius = 90)  
-const INNER_R = 27;   // inner boundary of arcs (edge of empty center)  
+const INNER_R = 31;   // inner boundary of arcs (edge of empty center)  
 const ARC_R = 81;   // outer boundary of arcs  
 const TICK_R = 81;   // inner edge of tick ring  
 const HRS_R = 67;   // hours label location  
@@ -83,6 +83,16 @@ function makeGradient(
 }
 
 export const COLORS = ['#e06c75', '#e5c07b', '#98c379', '#61afef', '#c678dd', '#56b6c2'];
+
+// Timeframe rim colors  
+const TIMEFRAME_COLORS: Record<string, string> = {
+    morning: '#f5c842',   // warm yellow  
+    afternoon: '#f5a623',   // amber  
+    evening: '#c0392b',   // deep red  
+    night: '#2c3e7a',   // dark blue  
+};
+const TIMEFRAME_RIM_INNER = 27;
+const TIMEFRAME_RIM_OUTER = 31;
 
 export function randomColor(): string {
     const h = Math.floor(Math.random() * 360);
@@ -239,12 +249,57 @@ function buildDynamicGroup(
     return g;
 }
 
+function renderTimeframeRim(
+    svg: SVGSVGElement,
+    use12h: boolean,
+    showPM: boolean,
+    timeframes: Record<string, { start: string; end: string }>
+): void {
+    const windowStart = use12h ? (showPM ? 12 : 0) : 0;
+    const windowEnd = use12h ? windowStart + 12 : 24;
+
+    const TF_ORDER = ['morning', 'afternoon', 'evening', 'night'] as const;
+
+    for (const key of TF_ORDER) {
+        const tf = timeframes[key];
+        if (!tf) continue;
+
+        let [sh, sm] = tf.start.split(':').map(Number);
+        let [eh, em] = tf.end.split(':').map(Number);
+        let tfStartMins = sh * 60 + sm;
+        let tfEndMins = eh * 60 + em;
+
+        // Handle midnight wrap (e.g. evening 17:00–00:00)  
+        if (tfEndMins <= tfStartMins) tfEndMins += 24 * 60;
+
+        // Clip to the visible window  
+        const winStartMins = windowStart * 60;
+        const winEndMins = windowEnd * 60;
+        const clippedStart = Math.max(tfStartMins, winStartMins);
+        const clippedEnd = Math.min(tfEndMins, winEndMins);
+        if (clippedEnd <= clippedStart) continue;
+
+        // Convert to angles  
+        const startAngle = ((clippedStart - winStartMins) / ((winEndMins - winStartMins))) * 360 - 90;
+        const endAngle = ((clippedEnd - winStartMins) / ((winEndMins - winStartMins))) * 360 - 90;
+
+        const color = TIMEFRAME_COLORS[key] ?? '#888888';
+        const path = makePath(
+            makeArcPath(TIMEFRAME_RIM_OUTER, TIMEFRAME_RIM_INNER, startAngle, endAngle),
+            color,
+            '0.55'
+        );
+        svg.appendChild(path);
+    }
+}
+
 export function renderClock(
     container: Element,
     sectors: Sector[],
     use12h: boolean,
     showPM: boolean,
-    overrideAngle?: number   // ← new optional param  
+    overrideAngle?: number,
+    timeframes?: Record<string, { start: string; end: string }>
 ): void {
     // #region start renderclock
     sectors = sectors.filter(s => s.start && s.end);
@@ -283,6 +338,11 @@ export function renderClock(
     face.setAttribute('stroke', '#888'); face.setAttribute('stroke-width', '1');
     svg.appendChild(face);
 
+    // ── Timeframe rim ──────────────────────────────────────────────────────────  
+    if (timeframes) {
+        renderTimeframeRim(svg, use12h, showPM, timeframes);
+    }
+    
     // #endregion  
 
     // #region Tick marks & hour labels  
