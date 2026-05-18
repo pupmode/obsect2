@@ -35,23 +35,22 @@ export class ClockView extends ItemView {
         const container = this.containerEl.children[1];
         container.empty();
 
-        const btn = container.createEl('button', { cls: 'sectograph-toggle' });
+        const topBar = container.createEl('div', { cls: 'sectograph-top-bar' });
+
+        const btn = topBar.createEl('button', { cls: 'sectograph-toggle' });
         setIcon(btn, 'clock');
         btn.addEventListener('click', () => { this.use12h = !this.use12h; this.render(); });
 
-        const addBtn = container.createEl('button', { cls: 'sectograph-add-btn' });
-        setIcon(addBtn, 'plus');
-        addBtn.addEventListener('click', () => { new AddSectorModal(this.app, this.plugin).open(); });
-
         if (this.use12h) {
-            const ampmBtn = container.createEl('button', { cls: 'sectograph-toggle' });
+            const ampmBtn = topBar.createEl('button', { cls: 'sectograph-toggle' });
             setIcon(ampmBtn, this.showPM ? 'sun' : 'moon');
             ampmBtn.addEventListener('click', () => { this.showPM = !this.showPM; this.render(); });
-        }
+        }  
 
+        const clockEl = container.createEl('div', { cls: 'sectograph-clock-wrap' });
         const timedSectors = sectors.filter(s => s.start && s.end);
-        renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined, this.plugin.settings.timeframes);
-        this.svgEl = container.querySelector('svg') as SVGSVGElement;
+        renderClock(clockEl, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined, this.plugin.settings.timeframes);
+        this.svgEl = clockEl.querySelector('svg') as SVGSVGElement;
         this.renderList(container, sectors);
         this.setupDragEvents();
     }
@@ -60,8 +59,9 @@ export class ClockView extends ItemView {
         this.cachedSectors = await this.plugin.store.load(this.viewDate);
         const container = this.containerEl.children[1];
         const timedSectors = this.cachedSectors.filter(s => s.start && s.end);
-        renderClock(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined, this.plugin.settings.timeframes);
-        this.svgEl = container.querySelector('svg') as SVGSVGElement;
+        const clockEl = container.querySelector('.sectograph-clock-wrap') ?? container;
+        renderClock(clockEl, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined, this.plugin.settings.timeframes);
+        this.svgEl = clockEl.querySelector('svg') as SVGSVGElement;
         if (this.isDragging) this.setupDragEvents();
     }
 
@@ -93,8 +93,10 @@ export class ClockView extends ItemView {
             this.rafId = requestAnimationFrame(() => {
                 this.rafId = null;
                 const container = this.containerEl.children[1];
+                const clockEl = container.querySelector('.sectograph-clock-wrap') ?? container;
                 const timedSectors = this.cachedSectors.filter(s => s.start && s.end);
-                updateClockHand(container, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+                updateClockHand(clockEl, timedSectors, this.use12h, this.showPM, this.dragAngle ?? undefined);
+                this.svgEl = clockEl.querySelector('svg') as SVGSVGElement;
             });
         };
 
@@ -140,9 +142,10 @@ export class ClockView extends ItemView {
     redrawHand() {
         if (this.isDragging) return;
         const container = this.containerEl.children[1];
+        const clockEl = container.querySelector('.sectograph-clock-wrap') ?? container;
         const timedSectors = this.cachedSectors.filter(s => s.start && s.end);
-        updateClockHand(container, timedSectors, this.use12h, this.showPM);
-        this.svgEl = container.querySelector('svg') as SVGSVGElement;
+        updateClockHand(clockEl, timedSectors, this.use12h, this.showPM);
+        this.svgEl = clockEl.querySelector('svg') as SVGSVGElement;
         this.setupDragEvents();
     }
 
@@ -177,6 +180,12 @@ export class ClockView extends ItemView {
     private renderList(container: Element, sectors: Sector[]) {
         const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
         const list = container.createEl('div', { cls: 'sectograph-list' });
+
+        // ── toolbar with add button ──────────────────────────────────────────  
+        const toolbar = list.createEl('div', { cls: 'sectograph-list-toolbar' });
+        const addBtn = toolbar.createEl('button', { cls: 'sectograph-add-btn' });
+        setIcon(addBtn, 'plus');
+        addBtn.addEventListener('click', () => { new AddSectorModal(this.app, this.plugin).open(); });  
 
         // ── group sectors by timeframe ──────────────────────────────────────  
         const TIMEFRAME_ORDER = ['morning', 'afternoon', 'evening', 'night', ''] as const;
